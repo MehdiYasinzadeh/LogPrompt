@@ -1,16 +1,20 @@
 package ir.yasinzadeh.logprompt.controller;
 
+import ir.yasinzadeh.logprompt.service.LogTokenizer;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+
+import static ir.yasinzadeh.logprompt.service.LogTokenizer.parseLine;
 
 @RestController
 public class ChatController {
@@ -38,37 +42,42 @@ public class ChatController {
 
     @GetMapping("/file")
     public ResponseEntity<String> log() {
-        String path = "P:\\payan-nameh\\HDFS.log";
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(path))) {
+        Path filePath = Paths.get("P:/payan-nameh/HDFS.log");
+        try (BufferedReader reader = Files.newBufferedReader(filePath)) {
             String line;
-            List<String> lines = new ArrayList<>();
-            int batchSize = 10;
+            int count = 0;
+            List<LogTokenizer.LogToken> batch = new ArrayList<>();
 
             while ((line = reader.readLine()) != null) {
-                lines.add(line);
+                LogTokenizer.LogToken token = parseLine(line);
+                if (token != null) {
+                    batch.add(token);
+                    count++;
+                }
 
-                if (lines.size() == batchSize) {
-                    // چاپ دسته 10تایی
-                    lines.forEach(System.out::println);
-                    System.out.println("-------------- Batch Separator --------------");
-                    Thread.sleep(1000);
-                    lines.clear();
+                if (count == 10) {
+                    System.out.println("--------- Batch ---------");
+                    for (LogTokenizer.LogToken t : batch) {
+                        System.out.println(t);
+                    }
+                    batch.clear();
+                    count = 0;
                 }
             }
 
-            if (!lines.isEmpty()) {
-                lines.forEach(System.out::println);
+            // Remaining lines
+            if (!batch.isEmpty()) {
+                System.out.println("--------- Last Batch ---------");
+                for (LogTokenizer.LogToken t : batch) {
+                    System.out.println(t);
+                }
             }
-
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("خطا در خواندن فایل: " + e.getMessage());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
-        return ResponseEntity.ok("Done!");
-    }
+        return ResponseEntity.ok().build();
 
+    }
 
 }
