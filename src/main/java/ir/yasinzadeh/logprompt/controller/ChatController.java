@@ -1,5 +1,6 @@
 package ir.yasinzadeh.logprompt.controller;
 
+import ir.yasinzadeh.logprompt.service.LogProcessingServiceBGL;
 import ir.yasinzadeh.logprompt.service.LogTokenizer;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.http.ResponseEntity;
@@ -19,11 +20,13 @@ import static ir.yasinzadeh.logprompt.service.LogTokenizer.parseLine;
 @RestController
 public class ChatController {
     private final ChatClient chatClient;
+    private final LogProcessingServiceBGL logProcessingService;
 
-    public ChatController(ChatClient.Builder builder) {
+    public ChatController(ChatClient.Builder builder, LogProcessingServiceBGL logProcessingService) {
         this.chatClient = builder
                 .defaultSystem("You are an AI assistant answering questions about different products")
                 .build();
+        this.logProcessingService = logProcessingService;
     }
 
     @GetMapping("/ai")
@@ -40,44 +43,68 @@ public class ChatController {
         }
     }
 
-    @GetMapping("/file")
-    public ResponseEntity<String> log() {
-        Path filePath = Paths.get("P:/payan-nameh/HDFS.log");
-        try (BufferedReader reader = Files.newBufferedReader(filePath)) {
-            String line;
-            int count = 0;
-            List<LogTokenizer.LogToken> batch = new ArrayList<>();
-
-            while ((line = reader.readLine()) != null) {
-                LogTokenizer.LogToken token = parseLine(line);
-                if (token != null) {
-                    batch.add(token);
-                    count++;
-                }
-
-                if (count == 10) {
-                    System.out.println("--------- Batch ---------");
-                    for (LogTokenizer.LogToken t : batch) {
-                        System.out.println(t);
-                    }
-                    batch.clear();
-                    count = 0;
-                }
+    @GetMapping("/bgl")
+    public ResponseEntity<String> bgl() {
+        try {
+            int batchSize = 10;
+            Iterable<List<List<String>>> tokenizedBatches = logProcessingService.processLogsInBatches("D:\\payan-nameh\\BGL.log", batchSize);
+            int batchNumber = 1;
+            for (List<List<String>> tokenizedBatch : tokenizedBatches) {
+                System.out.println("Batch " + batchNumber + ":");
+                tokenizedBatch.forEach(tokens -> System.out.println("  Tokens: " + tokens));
+                batchNumber++;
             }
-
-            // Remaining lines
-            if (!batch.isEmpty()) {
-                System.out.println("--------- Last Batch ---------");
-                for (LogTokenizer.LogToken t : batch) {
-                    System.out.println(t);
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
         return ResponseEntity.ok().build();
+    }
 
+    @GetMapping("/file")
+    public ResponseEntity<String> processLogFile() {
+        Path filePath = Paths.get("D:\\payan-nameh\\BGL.log");
+        List<LogTokenizer.LogToken> batch = new ArrayList<>();
+        final int BATCH_SIZE = 5;
+
+        try (BufferedReader reader = Files.newBufferedReader(filePath)) {
+            processLogLines(reader, batch, BATCH_SIZE);
+            printRemainingBatch(batch);
+            return ResponseEntity.ok().build();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to process log file", e);
+        }
+    }
+
+    private void processLogLines(BufferedReader reader, List<LogTokenizer.LogToken> batch, int batchSize)
+            throws IOException {
+        String line;
+        int count = 0;
+
+        while ((line = reader.readLine()) != null) {
+            LogTokenizer.LogToken token = parseLine(line);
+            if (token != null) {
+                batch.add(token);
+                count++;
+            }
+
+            if (count == batchSize) {
+                printBatch(batch);
+                batch.clear();
+                count = 0;
+            }
+        }
+    }
+
+    private void printBatch(List<LogTokenizer.LogToken> batch) {
+        System.out.println("--------- Batch ---------");
+        batch.forEach(System.out::println);
+    }
+
+    private void printRemainingBatch(List<LogTokenizer.LogToken> batch) {
+        if (!batch.isEmpty()) {
+            System.out.println("--------- Last Batch ---------");
+            batch.forEach(System.out::println);
+        }
     }
 
 }
