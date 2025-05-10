@@ -1,2 +1,2 @@
 # LogPrompt
-a log-based anomaly detection framework using prompts
+a log-based anomaly detection framework using prompts 
