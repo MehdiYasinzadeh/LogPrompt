@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class LogBglEntryDto {
+    private String mainLog;
     private String label;
     private String timestamp;
     private String date;
@@ -14,6 +15,15 @@ public class LogBglEntryDto {
     private String component;
     private String severity;
     private String message;
+
+    public String getMainLog() {
+        return mainLog;
+    }
+
+    public LogBglEntryDto setMainLog(String mainLog) {
+        this.mainLog = mainLog;
+        return this;
+    }
 
     public String getLabel() {
         return label;

@@ -1,7 +1,7 @@
 package ir.yasinzadeh.logprompt.service;
 
 import ir.yasinzadeh.logprompt.dto.LogBglEntryDto;
-import org.springframework.beans.factory.annotation.Autowired;
+import ir.yasinzadeh.logprompt.entity.BglPrompts;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -9,12 +9,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
 public class BglParser {
+
+    private final BglPromptsService bglPromptsService;
 
     private final PromptGenerator promptGenerator;
     static final Pattern LOG_PATTERN = Pattern.compile(
@@ -29,12 +30,13 @@ public class BglParser {
                     "(?<severity>[A-Z]+)\\s+" +
                     "(?<message>.*)");
 
-    public BglParser(PromptGenerator promptGenerator) {
+    public BglParser(PromptGenerator promptGenerator, BglPromptsService bglPromptsService) {
         this.promptGenerator = promptGenerator;
+        this.bglPromptsService = bglPromptsService;
     }
 
     public void logParser() throws IOException {
-        List<String> lines = Files.readAllLines(Path.of("D:\\payan-nameh\\BGL.log"));
+        List<String> lines = Files.readAllLines(Path.of("p:\\payan-nameh\\BGL.log"));
 
         List<List<String>> chunks = new ArrayList<>();
         for (int i = 0; i < lines.size(); i += 10) {
@@ -50,26 +52,28 @@ public class BglParser {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            dtos.forEach(System.out::println);
-            //make your prompt
-             String prompt = makePrompt(dtos);
-            //send 10 log to model
-            //save response of model
+            makeBglPrompt(dtos);
         }
     }
-    private String makePrompt(List<LogBglEntryDto> dtos) {
-        StringBuilder prompt = new StringBuilder();
-        dtos.forEach(dto ->{
+
+    private void makeBglPrompt(List<LogBglEntryDto> dtos) {
+        dtos.forEach(dto -> {
             List<String> prompts = promptGenerator.generatePrompts(dto);
-            prompts.forEach(prompt::append);
+            //call model ai
+
+            bglPromptsService.save(
+                    new BglPrompts()
+                            .setPrompts(prompts)
+                            .setLog(dto.getMainLog())
+            );
         });
-        return prompt.toString();
     }
 
     private static LogBglEntryDto parseLine(String line) {
         Matcher matcher = LOG_PATTERN.matcher(line);
         if (matcher.matches()) {
             return new LogBglEntryDto()
+                    .setMainLog(line)
                     .setLabel(matcher.group("label"))
                     .setTimestamp(matcher.group("timestamp"))
                     .setDate(matcher.group("date"))

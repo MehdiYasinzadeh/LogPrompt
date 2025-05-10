@@ -22,10 +22,11 @@ public class PromptGenerator {
                 Optional.ofNullable(dto.getSeverity()).orElse("")
         ).trim();
 
-        String prompt1 = String.format("semantic %s sequential %s it is [MSK]", sem, seq);
-        String prompt2 = String.format("%s %s it is [MSK]", sem, seq);
-        String prompt3 = String.format("%s %s normal or anomaly ? [MSK]", sem, seq);
-        String prompt4 = String.format("%s %s h[PRO] h[PRO] [MSK]", sem, seq);
+        String prompt = "Answer with only 0 (normal) or 1 (anomaly). Just return the digit.\n";
+        String prompt1 = prompt + String.format("semantic %s sequential %s it is [MSK]", sem, seq);
+        String prompt2 = prompt + String.format("%s %s it is [MSK]", sem, seq);
+        String prompt3 = prompt + String.format("%s %s normal or anomaly ? [MSK]", sem, seq);
+        String prompt4 = prompt + String.format("%s %s h[PRO] h[PRO] [MSK]", sem, seq);
 
         return List.of(prompt1, prompt2, prompt3, prompt4);
     }
