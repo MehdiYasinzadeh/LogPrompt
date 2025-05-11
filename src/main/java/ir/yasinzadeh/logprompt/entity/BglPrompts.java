@@ -11,9 +11,7 @@ public class BglPrompts {
     @Id
     private int id;
     private String log;
-    private List<String> prompts;
-    private String result;
-    public String response;
+    private List<PromptDto> prompts;
 
     public int getId() {
         return id;
@@ -33,30 +31,12 @@ public class BglPrompts {
         return this;
     }
 
-    public List<String> getPrompts() {
+    public List<PromptDto> getPrompts() {
         return prompts;
     }
 
-    public BglPrompts setPrompts(List<String> prompts) {
+    public BglPrompts setPrompts(List<PromptDto> prompts) {
         this.prompts = prompts;
-        return this;
-    }
-
-    public String getResult() {
-        return result;
-    }
-
-    public BglPrompts setResult(String result) {
-        this.result = result;
-        return this;
-    }
-
-    public String getResponse() {
-        return response;
-    }
-
-    public BglPrompts setResponse(String response) {
-        this.response = response;
         return this;
     }
 }

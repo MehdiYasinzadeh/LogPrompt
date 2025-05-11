@@ -2,6 +2,8 @@ package ir.yasinzadeh.logprompt.service;
 
 import ir.yasinzadeh.logprompt.dto.LogBglEntryDto;
 import ir.yasinzadeh.logprompt.entity.BglPrompts;
+import ir.yasinzadeh.logprompt.entity.PromptDto;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -15,9 +17,10 @@ import java.util.regex.Pattern;
 @Service
 public class BglParser {
 
+    private final ChatClient chatClient;
     private final BglPromptsService bglPromptsService;
-
     private final PromptGenerator promptGenerator;
+
     static final Pattern LOG_PATTERN = Pattern.compile(
             "(?<label>-)?\\s*" +
                     "(?<timestamp>\\d+)\\s+" +
@@ -30,9 +33,10 @@ public class BglParser {
                     "(?<severity>[A-Z]+)\\s+" +
                     "(?<message>.*)");
 
-    public BglParser(PromptGenerator promptGenerator, BglPromptsService bglPromptsService) {
+    public BglParser(PromptGenerator promptGenerator, BglPromptsService bglPromptsService, ChatClient.Builder chatClientBuilder) {
         this.promptGenerator = promptGenerator;
         this.bglPromptsService = bglPromptsService;
+        this.chatClient = chatClientBuilder.build();
     }
 
     public void logParser() throws IOException {
@@ -57,10 +61,15 @@ public class BglParser {
     }
 
     private void makeBglPrompt(List<LogBglEntryDto> dtos) {
+        List<PromptDto> prompts = new ArrayList<>();
         dtos.forEach(dto -> {
-            List<String> prompts = promptGenerator.generatePrompts(dto);
-            //call model ai
-
+            promptGenerator.generatePrompts(dto)
+                    .forEach(prompt -> prompts.add(new PromptDto()
+                            .setPrompt(prompt)
+                            .setResult(this.chatClient.prompt()
+                                    .user(prompt)
+                                    .call()
+                                    .content())));
             bglPromptsService.save(
                     new BglPrompts()
                             .setPrompts(prompts)
