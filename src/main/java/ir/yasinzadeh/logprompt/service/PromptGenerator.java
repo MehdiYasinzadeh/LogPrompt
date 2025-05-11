@@ -22,7 +22,7 @@ public class PromptGenerator {
                 Optional.ofNullable(dto.getSeverity()).orElse("")
         ).trim();
 
-        String prompt = "Answer with only 0 (normal) or 1 (anomaly). Just return the digit.\n";
+        String prompt = "Answer with only one character: either 0 (normal) or 1 (anomaly). Do not explain. Just output the digit.\n";
         String prompt1 = prompt + String.format("semantic %s sequential %s it is [MSK]", sem, seq);
         String prompt2 = prompt + String.format("%s %s it is [MSK]", sem, seq);
         String prompt3 = prompt + String.format("%s %s normal or anomaly ? [MSK]", sem, seq);
