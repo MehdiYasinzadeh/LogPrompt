@@ -5,8 +5,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
 
-@Document(collection = "BglPrompt")
-public class BglPrompts {
+@Document(collection = "FinalPrompts")
+public class FinalPrompts {
 
     @Id
     private int id;
@@ -17,7 +17,7 @@ public class BglPrompts {
         return id;
     }
 
-    public BglPrompts setId(int id) {
+    public FinalPrompts setId(int id) {
         this.id = id;
         return this;
     }
@@ -26,7 +26,7 @@ public class BglPrompts {
         return log;
     }
 
-    public BglPrompts setLog(String log) {
+    public FinalPrompts setLog(String log) {
         this.log = log;
         return this;
     }
@@ -35,7 +35,7 @@ public class BglPrompts {
         return prompts;
     }
 
-    public BglPrompts setPrompts(List<PromptDto> prompts) {
+    public FinalPrompts setPrompts(List<PromptDto> prompts) {
         this.prompts = prompts;
         return this;
     }
