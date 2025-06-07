@@ -4,7 +4,7 @@ import ir.yasinzadeh.logprompt.dto.ChatGPTRequest;
 import ir.yasinzadeh.logprompt.dto.ChatGptResponse;
 import ir.yasinzadeh.logprompt.dto.LogBglEntryDto;
 import ir.yasinzadeh.logprompt.dto.Message;
-import ir.yasinzadeh.logprompt.entity.FinalPrompts;
+//import ir.yasinzadeh.logprompt.entity.FinalPrompts;
 import ir.yasinzadeh.logprompt.entity.PromptDto;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -30,11 +30,11 @@ public class BglParser {
     @Value(("${openai.api.url}"))
     private String apiURL;
 
-    private final FinalPromptsService finalPromptsService;
+//    private final FinalPromptsService finalPromptsService;
     private final RestTemplate template;
 
-    public BglParser(FinalPromptsService finalPromptsService, RestTemplate template) {
-        this.finalPromptsService = finalPromptsService;
+    public BglParser( RestTemplate template) {
+//        this.finalPromptsService = finalPromptsService;
         this.template = template;
     }
 
@@ -79,11 +79,11 @@ public class BglParser {
                     .forEach(prompt -> prompts.add(new PromptDto()
                             .setPrompt(prompt)
                             .setResult(getResultAi(prompt))));
-            finalPromptsService.save(
-                    new FinalPrompts()
-                            .setPrompts(prompts)
-                            .setLog(dto.getMainLog())
-            );
+//            finalPromptsService.save(
+//                    new FinalPrompts()
+//                            .setPrompts(prompts)
+//                            .setLog(dto.getMainLog())
+//            );
         });
     }
 

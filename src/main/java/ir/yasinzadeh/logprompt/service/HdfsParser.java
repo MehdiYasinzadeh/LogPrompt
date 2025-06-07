@@ -4,7 +4,7 @@ import ir.yasinzadeh.logprompt.dto.ChatGPTRequest;
 import ir.yasinzadeh.logprompt.dto.ChatGptResponse;
 import ir.yasinzadeh.logprompt.dto.LogHdfsEntryDto;
 import ir.yasinzadeh.logprompt.dto.Message;
-import ir.yasinzadeh.logprompt.entity.FinalPrompts;
+//import ir.yasinzadeh.logprompt.entity.FinalPrompts;
 import ir.yasinzadeh.logprompt.entity.PromptDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -34,7 +34,7 @@ public class HdfsParser {
     private String apiURL;
 
     private final RestTemplate template;
-    private final FinalPromptsService finalPromptsService;
+//    private final FinalPromptsService finalPromptsService;
 
     private static final Pattern LOG_PATTERN = Pattern.compile(
             "^(?<date>\\d{6})\\s+" +
@@ -45,9 +45,9 @@ public class HdfsParser {
             "(?<message>.*)$"
     );
 
-    public HdfsParser(RestTemplate template, FinalPromptsService finalPromptsService) {
+    public HdfsParser(RestTemplate template) {
         this.template = template;
-        this.finalPromptsService = finalPromptsService;
+//        this.finalPromptsService = finalPromptsService;
     }
 
     public void parseHdfsLogsEfficient(String filePath) {
@@ -86,11 +86,11 @@ public class HdfsParser {
                     .forEach(prompt -> prompts.add(new PromptDto()
                             .setPrompt(prompt)
                             .setResult(getResultAi(prompt))));
-            finalPromptsService.save(
-                    new FinalPrompts()
-                            .setPrompts(prompts)
-                            .setLog(dto.getMainLog())
-            );
+//            finalPromptsService.save(
+//                    new FinalPrompts()
+//                            .setPrompts(prompts)
+//                            .setLog(dto.getMainLog())
+//            );
         });
     }
 
