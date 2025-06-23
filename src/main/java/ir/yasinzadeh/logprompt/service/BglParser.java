@@ -5,10 +5,8 @@ import ir.yasinzadeh.logprompt.dto.ChatGptResponse;
 import ir.yasinzadeh.logprompt.dto.LogBglEntryDto;
 import ir.yasinzadeh.logprompt.dto.Message;
 //import ir.yasinzadeh.logprompt.entity.FinalPrompts;
-import ir.yasinzadeh.logprompt.entity.FinalPrompts;
+import ir.yasinzadeh.logprompt.entity.FinalResult;
 import ir.yasinzadeh.logprompt.entity.PromptDto;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -82,14 +80,16 @@ public class BglParser {
                             .setPrompt(prompt)
                             .setResult(getResultAi(prompt))));
             finalPromptsService.save(
-                    new FinalPrompts()
-                            .setPrompts(prompts)
-                            .setLog(dto.getMainLog())
+                    new FinalResult().builder()
+                            .prompts(prompts)
+                            .mainLog(dto.getMainLog())
+                            .build()
             );
         });
     }
 
     private String getResultAi(String prompt) {
+
         ChatGPTRequest request = new ChatGPTRequest(model, prompt);
 
         try {

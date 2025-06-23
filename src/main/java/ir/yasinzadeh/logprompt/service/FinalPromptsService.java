@@ -1,6 +1,6 @@
 package ir.yasinzadeh.logprompt.service;
 
-import ir.yasinzadeh.logprompt.entity.FinalPrompts;
+import ir.yasinzadeh.logprompt.entity.FinalResult;
 import ir.yasinzadeh.logprompt.repository.FinalPromptsRepo;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +12,7 @@ public class FinalPromptsService {
         this.repository = repository;
     }
 
-    public void save(FinalPrompts prompts) {
+    public void save(FinalResult prompts) {
         repository.save(prompts);
     }
 }
