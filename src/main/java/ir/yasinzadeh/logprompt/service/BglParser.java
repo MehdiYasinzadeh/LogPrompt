@@ -4,10 +4,9 @@ import ir.yasinzadeh.logprompt.dto.ChatGPTRequest;
 import ir.yasinzadeh.logprompt.dto.ChatGptResponse;
 import ir.yasinzadeh.logprompt.dto.LogBglEntryDto;
 import ir.yasinzadeh.logprompt.dto.Message;
-//import ir.yasinzadeh.logprompt.entity.FinalPrompts;
+import ir.yasinzadeh.logprompt.entity.AiModel;
+import ir.yasinzadeh.logprompt.entity.FinalPrompts;
 import ir.yasinzadeh.logprompt.entity.PromptDto;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -25,30 +24,30 @@ import java.util.regex.Pattern;
 public class BglParser {
 
     @Value("${openai.model}")
-    private String model;
+    private String gptModel;
 
     @Value(("${openai.api.url}"))
     private String apiURL;
 
-//    private final FinalPromptsService finalPromptsService;
+    private final FinalPromptsService finalPromptsService;
     private final RestTemplate template;
 
-    public BglParser( RestTemplate template) {
-//        this.finalPromptsService = finalPromptsService;
+    public BglParser(RestTemplate template, FinalPromptsService finalPromptsService) {
+        this.finalPromptsService = finalPromptsService;
         this.template = template;
     }
 
     static final Pattern LOG_PATTERN = Pattern.compile(
             "(?<label>-)?\\s*" +
-                    "(?<timestamp>\\d+)\\s+" +
-                    "(?<date>\\d{4}\\.\\d{2}\\.\\d{2})\\s+" +
-                    "(?<location1>R\\d+-M\\d+-N\\d+-C:J\\d+-U\\d+)\\s+" +
-                    "(?<datetime>\\d{4}-\\d{2}-\\d{2}-\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d+)\\s+" +
-                    "(?<location2>R\\d+-M\\d+-N\\d+-C:J\\d+-U\\d+)\\s+" +
-                    "(?<category>[A-Z]+)\\s+" +
-                    "(?<component>[A-Z]+)\\s+" +
-                    "(?<severity>[A-Z]+)\\s+" +
-                    "(?<message>.*)");
+            "(?<timestamp>\\d+)\\s+" +
+            "(?<date>\\d{4}\\.\\d{2}\\.\\d{2})\\s+" +
+            "(?<location1>R\\d+-M\\d+-N\\d+-C:J\\d+-U\\d+)\\s+" +
+            "(?<datetime>\\d{4}-\\d{2}-\\d{2}-\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d+)\\s+" +
+            "(?<location2>R\\d+-M\\d+-N\\d+-C:J\\d+-U\\d+)\\s+" +
+            "(?<category>[A-Z]+)\\s+" +
+            "(?<component>[A-Z]+)\\s+" +
+            "(?<severity>[A-Z]+)\\s+" +
+            "(?<message>.*)");
 
 
     public void logParser() throws IOException {
@@ -68,27 +67,41 @@ public class BglParser {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            makeBglPrompt(dtos);
+            makeAndSaveBglPrompt(dtos);
         }
     }
 
-    private void makeBglPrompt(List<LogBglEntryDto> dtos) {
-        List<PromptDto> prompts = new ArrayList<>();
+    private void makeAndSaveBglPrompt(List<LogBglEntryDto> dtos) {
         dtos.forEach(dto -> {
+            List<PromptDto> prompts = new ArrayList<>();
+            PromptGenerator.generatePromptsBgl(dto)
+                    .forEach(prompt -> setGptPromps(prompt, prompts));
+            finalPromptsService.save(new FinalPrompts().setPrompts(prompts).setLog(dto.getMainLog()));
+        });
+    }
+
+    private void setGptPromps(String prompt, List<PromptDto> prompts) {
+         prompts.add(new PromptDto().setPrompt(prompt).setResult(getGptResultAi(prompt)).setAiModel(AiModel.CHATGPT));
+    }
+
+    /*private void makeBglPrompt(List<LogBglEntryDto> dtos) {
+
+        dtos.forEach(dto -> {
+            List<PromptDto> prompts = new ArrayList<>();
             PromptGenerator.generatePromptsBgl(dto)
                     .forEach(prompt -> prompts.add(new PromptDto()
                             .setPrompt(prompt)
                             .setResult(getResultAi(prompt))));
-//            finalPromptsService.save(
-//                    new FinalPrompts()
-//                            .setPrompts(prompts)
-//                            .setLog(dto.getMainLog())
-//            );
+            finalPromptsService.save(
+                    new FinalPrompts()
+                            .setPrompts(prompts)
+                            .setLog(dto.getMainLog())
+            );
         });
-    }
+    }*/
 
-    private String getResultAi(String prompt) {
-        ChatGPTRequest request = new ChatGPTRequest(model, prompt);
+    private String getGptResultAi(String prompt) {
+        ChatGPTRequest request = new ChatGPTRequest(gptModel, prompt);
 
         try {
             ChatGptResponse response = template.postForObject(apiURL, request, ChatGptResponse.class);

@@ -17,7 +17,7 @@ public class OpenAIConfig {
 
     @Bean
     public RestTemplate template() {
-        Proxy proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("127.0.0.1", 5060));
+        Proxy proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("127.0.0.1", 10808));
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setProxy(proxy);
         RestTemplate restTemplate = new RestTemplate(requestFactory);
