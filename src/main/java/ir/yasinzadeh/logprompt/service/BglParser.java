@@ -1,41 +1,38 @@
 package ir.yasinzadeh.logprompt.service;
 
-import ir.yasinzadeh.logprompt.dto.ChatGPTRequest;
-import ir.yasinzadeh.logprompt.dto.ChatGptResponse;
 import ir.yasinzadeh.logprompt.dto.LogBglEntryDto;
-import ir.yasinzadeh.logprompt.dto.Message;
 import ir.yasinzadeh.logprompt.entity.AiModel;
 import ir.yasinzadeh.logprompt.entity.FinalPrompts;
 import ir.yasinzadeh.logprompt.entity.PromptDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
 public class BglParser {
 
-    @Value("${openai.model}")
+    @Value("${model.api.gpt.url}")
+    private String gptApiURL;
+
+    @Value("${model.api.ollama.url}")
+    private String ollamaApiUrl;
+
+    @Value("${model.api.gpt.model-name}")
     private String gptModel;
 
-    @Value(("${openai.api.url}"))
-    private String apiURL;
+    @Value("${model.api.ollama.model-name}")
+    private String ollamaModel;
 
+
+    private final CallModelAi callModelAi;
     private final FinalPromptsService finalPromptsService;
-    private final RestTemplate template;
-
-    public BglParser(RestTemplate template, FinalPromptsService finalPromptsService) {
-        this.finalPromptsService = finalPromptsService;
-        this.template = template;
-    }
 
     static final Pattern LOG_PATTERN = Pattern.compile(
             "(?<label>-)?\\s*" +
@@ -49,9 +46,14 @@ public class BglParser {
             "(?<severity>[A-Z]+)\\s+" +
             "(?<message>.*)");
 
+    public BglParser(CallModelAi callModelAi, FinalPromptsService finalPromptsService) {
+        this.callModelAi = callModelAi;
+        this.finalPromptsService = finalPromptsService;
+    }
+
 
     public void logParser() throws IOException {
-        List<String> lines = Files.readAllLines(Path.of("p:\\payan-nameh\\BGL.log"));
+        List<String> lines = Files.readAllLines(Path.of("/home/mehdi/Downloads/BGL/BGL.log"));
 
         List<List<String>> chunks = new ArrayList<>();
         for (int i = 0; i < lines.size(); i += 10) {
@@ -73,51 +75,33 @@ public class BglParser {
 
     private void makeAndSaveBglPrompt(List<LogBglEntryDto> dtos) {
         dtos.forEach(dto -> {
-            List<PromptDto> prompts = new ArrayList<>();
+
+            List<PromptDto> ollamaPromps = new ArrayList<>();
             PromptGenerator.generatePromptsBgl(dto)
-                    .forEach(prompt -> setGptPromps(prompt, prompts));
-            finalPromptsService.save(new FinalPrompts().setPrompts(prompts).setLog(dto.getMainLog()));
+                    .forEach(prompt -> setOllamaPromps(prompt, ollamaPromps));
+            finalPromptsService.save(new FinalPrompts().setPrompts(ollamaPromps).setLog(dto.getMainLog()));
+
+            List<PromptDto> gptPromps = new ArrayList<>();
+            PromptGenerator.generatePromptsBgl(dto)
+                    .forEach(prompt -> setGptPromps(prompt, gptPromps));
+            finalPromptsService.save(new FinalPrompts().setPrompts(gptPromps).setLog(dto.getMainLog()));
+
         });
     }
 
-    private void setGptPromps(String prompt, List<PromptDto> prompts) {
-         prompts.add(new PromptDto().setPrompt(prompt).setResult(getGptResultAi(prompt)).setAiModel(AiModel.CHATGPT));
+    private void setOllamaPromps(String prompt, List<PromptDto> ollamaPromps) {
+        ollamaPromps.add(new PromptDto()
+                .setPrompt(prompt)
+                .setResult(callModelAi.getOllamaResult(ollamaModel, prompt, ollamaApiUrl))
+                .setAiModel(AiModel.OLLAMMA));
     }
 
-    /*private void makeBglPrompt(List<LogBglEntryDto> dtos) {
-
-        dtos.forEach(dto -> {
-            List<PromptDto> prompts = new ArrayList<>();
-            PromptGenerator.generatePromptsBgl(dto)
-                    .forEach(prompt -> prompts.add(new PromptDto()
-                            .setPrompt(prompt)
-                            .setResult(getResultAi(prompt))));
-            finalPromptsService.save(
-                    new FinalPrompts()
-                            .setPrompts(prompts)
-                            .setLog(dto.getMainLog())
-            );
-        });
-    }*/
-
-    private String getGptResultAi(String prompt) {
-        ChatGPTRequest request = new ChatGPTRequest(gptModel, prompt);
-
-        try {
-            ChatGptResponse response = template.postForObject(apiURL, request, ChatGptResponse.class);
-
-            return Optional.ofNullable(response)
-                    .map(ChatGptResponse::getChoices)
-                    .filter(choices -> !choices.isEmpty())
-                    .map(choices -> choices.get(0))
-                    .map(ChatGptResponse.Choice::getMessage)
-                    .map(Message::getContent)
-                    .orElse("An error occurred while communicating with the AI.");
-        } catch (Exception e) {
-            return "Failed to connect to AI server: " + e.getMessage();
-        }
+    private void setGptPromps(String prompt, List<PromptDto> gptPrompts) {
+        gptPrompts.add(new PromptDto()
+                .setPrompt(prompt)
+                .setResult(callModelAi.getGptResult(gptModel, prompt, gptApiURL))
+                .setAiModel(AiModel.CHATGPT));
     }
-
 
     private static LogBglEntryDto parseLine(String line) {
         Matcher matcher = LOG_PATTERN.matcher(line);
