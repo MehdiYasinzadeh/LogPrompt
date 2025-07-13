@@ -1,6 +1,5 @@
 package ir.yasinzadeh.logprompt.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import ir.yasinzadeh.logprompt.dto.ChatGPTRequest;
 import ir.yasinzadeh.logprompt.dto.ChatGptResponse;
 import ir.yasinzadeh.logprompt.dto.Message;
@@ -8,17 +7,12 @@ import ir.yasinzadeh.logprompt.dto.OllamaRequestDto;
 import ir.yasinzadeh.logprompt.dto.OllamaResponseDto;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.util.Optional;
-import java.util.function.Function;
 
 /**
  * @author Mahdi Yasinzadeh
@@ -54,10 +48,8 @@ public class CallModelAi {
     public String getOllamaResult(String model, String prompt, String apiURL) {
         OllamaRequestDto requestDto = new OllamaRequestDto(
                 model, prompt, new OllamaRequestDto.Options(0.2d, 2));
-        getFirstResponseLine(apiURL,requestDto);
-        return Optional.ofNullable(template.postForObject(apiURL, requestDto, OllamaResponseDto.class))
-                .map(OllamaResponseDto::getResponse)
-                .orElse("-1");
+        OllamaResponseDto firstResponseLine = getFirstResponseLine(apiURL, requestDto);
+        return firstResponseLine.getResponse().trim();
     }
 
     public Flux<String> getOllamaResult_v2(String model, String prompt, String apiURL) {
@@ -74,35 +66,11 @@ public class CallModelAi {
                 });
     }
 
-    public Flux<String> getFirstResponseLine(String apiURL, Object requestDto) {
-        return webClient.method(HttpMethod.POST)
-                .uri(apiURL)
-                .bodyValue(requestDto)
-                .retrieve()
-                .bodyToFlux(String.class)
-                .doOnNext(str -> {
-                    System.out.println(str.trim());
-                });
-//        ResponseExtractor<String> responseExtractor = clientHttpResponse -> {
-//            try (BufferedReader reader = new BufferedReader(new InputStreamReader(clientHttpResponse.getBody()))) {
-//                StringBuilder sb = new StringBuilder();
-//                String line;
-//                while ((line = reader.readLine()) != null) {
-//                    sb.append(line).append("\n");
-//                    if (line.contains("\"done\":true")) break; // یا شرط توقف دیگه
-//                }
-//                return sb.toString();
-//            }
-//        };
-//
-//        String streamResponse = template.execute(
-//                apiURL,
-//                HttpMethod.POST,
-//                request -> {
-//                    request.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-//                    new ObjectMapper().writeValue(request.getBody(), requestDto);
-//                },
-//                responseExtractor);
-//        return null;
+    public OllamaResponseDto getFirstResponseLine(String apiURL, Object requestDto) {
+            return webClient.method(HttpMethod.POST)
+                    .uri(apiURL)
+                    .bodyValue(requestDto)
+                    .retrieve()
+                    .bodyToFlux(OllamaResponseDto.class).blockFirst();
     }
 }
