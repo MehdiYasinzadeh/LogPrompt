@@ -54,7 +54,7 @@ public class CallModelAi {
 
     public Flux<String> getOllamaResult_v2(String model, String prompt, String apiURL) {
         OllamaRequestDto requestDto = new OllamaRequestDto(
-                model, prompt, new OllamaRequestDto.Options(0.8d, 1000));
+                model, prompt, new OllamaRequestDto.Options(0.8d, 3));
         //getFirstResponseLine(apiURL,requestDto);
         return webClient.method(HttpMethod.POST)
                 .uri(apiURL)

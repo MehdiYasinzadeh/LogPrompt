@@ -3,6 +3,7 @@ package ir.yasinzadeh.logprompt.service;
 import ir.yasinzadeh.logprompt.dto.LogBglEntryDto;
 import ir.yasinzadeh.logprompt.entity.AiModel;
 import ir.yasinzadeh.logprompt.entity.FinalPrompts;
+import ir.yasinzadeh.logprompt.entity.LogType;
 import ir.yasinzadeh.logprompt.entity.PromptDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,8 @@ public class BglParser {
     @Value("${model.api.ollama.model-name}")
     private String ollamaModel;
 
+    @Value("${bgl.location}")
+    private String bglPath;
 
     private final CallModelAi callModelAi;
     private final FinalPromptsService finalPromptsService;
@@ -53,7 +56,7 @@ public class BglParser {
 
 
     public void logParser() throws IOException {
-        List<String> lines = Files.readAllLines(Path.of("/home/mehdi/Downloads/BGL/BGL.log"));
+        List<String> lines = Files.readAllLines(Path.of(bglPath));
 
         List<List<String>> chunks = new ArrayList<>();
         for (int i = 0; i < lines.size(); i += 10) {
@@ -75,16 +78,50 @@ public class BglParser {
 
     private void makeAndSaveBglPrompt(List<LogBglEntryDto> dtos) {
         dtos.forEach(dto -> {
-
-            List<PromptDto> ollamaPromps = new ArrayList<>();
+            List<PromptDto> gptPrompt = new ArrayList<>();
             PromptGenerator.generatePromptsBgl(dto)
-                    .forEach(prompt -> setOllamaPromps(prompt, ollamaPromps));
-            finalPromptsService.save(new FinalPrompts().setPrompts(ollamaPromps).setLog(dto.getMainLog()));
+                    .forEach(prompt -> setGptPrompts(prompt, gptPrompt, AiModel.CHATGPT));
+            finalPromptsService.save(new FinalPrompts()
+                    .setPrompts(gptPrompt)
+                    .setLog(dto.getMainLog())
+                    .setLogType(LogType.BGL));
 
-            List<PromptDto> gptPromps = new ArrayList<>();
+            List<PromptDto> ollamaPrompt = new ArrayList<>();
             PromptGenerator.generatePromptsBgl(dto)
-                    .forEach(prompt -> setGptPromps(prompt, gptPromps));
-            finalPromptsService.save(new FinalPrompts().setPrompts(gptPromps).setLog(dto.getMainLog()));
+                    .forEach(prompt -> setGptPrompts(prompt, ollamaPrompt, AiModel.OLLAMMA));
+            finalPromptsService.save(new FinalPrompts()
+                    .setPrompts(ollamaPrompt)
+                    .setLog(dto.getMainLog())
+                    .setLogType(LogType.BGL));
+
+            List<PromptDto> bertPrompt = new ArrayList<>();
+            PromptGenerator.generatePromptsBgl(dto)
+                    .forEach(prompt -> setGptPrompts(prompt, bertPrompt, AiModel.BERT));
+            finalPromptsService.save(new FinalPrompts()
+                    .setPrompts(bertPrompt)
+                    .setLog(dto.getMainLog())
+                    .setLogType(LogType.BGL));
+
+            List<PromptDto> robertaPrompt = new ArrayList<>();
+            PromptGenerator.generatePromptsBgl(dto)
+                    .forEach(prompt -> setGptPrompts(prompt, robertaPrompt, AiModel.ROBERTA));
+            finalPromptsService.save(new FinalPrompts()
+                    .setPrompts(robertaPrompt)
+                    .setLog(dto.getMainLog())
+                    .setLogType(LogType.BGL));
+
+            List<PromptDto> albertaPrompt = new ArrayList<>();
+            PromptGenerator.generatePromptsBgl(dto)
+                    .forEach(prompt -> setGptPrompts(prompt, albertaPrompt, AiModel.ALBERTA));
+            finalPromptsService.save(new FinalPrompts()
+                    .setPrompts(albertaPrompt)
+                    .setLog(dto.getMainLog())
+                    .setLogType(LogType.BGL));
+
+//            List<PromptDto> ollamaPromps = new ArrayList<>();
+//            PromptGenerator.generatePromptsBgl(dto)
+//                    .forEach(prompt -> setOllamaPromps(prompt, ollamaPromps));
+//            finalPromptsService.save(new FinalPrompts().setPrompts(ollamaPromps).setLog(dto.getMainLog()));
 
         });
     }
@@ -96,11 +133,11 @@ public class BglParser {
                 .setAiModel(AiModel.OLLAMMA));
     }
 
-    private void setGptPromps(String prompt, List<PromptDto> gptPrompts) {
+    private void setGptPrompts(String prompt, List<PromptDto> gptPrompts, AiModel aiModel) {
         gptPrompts.add(new PromptDto()
                 .setPrompt(prompt)
                 .setResult(callModelAi.getGptResult(gptModel, prompt, gptApiURL))
-                .setAiModel(AiModel.CHATGPT));
+                .setAiModel(aiModel));
     }
 
     private static LogBglEntryDto parseLine(String line) {

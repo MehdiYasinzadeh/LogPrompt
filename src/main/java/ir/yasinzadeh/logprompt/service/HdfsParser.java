@@ -1,8 +1,10 @@
 package ir.yasinzadeh.logprompt.service;
 
 import ir.yasinzadeh.logprompt.dto.LogHdfsEntryDto;
+import ir.yasinzadeh.logprompt.entity.AiModel;
+import ir.yasinzadeh.logprompt.entity.FinalPrompts;
+import ir.yasinzadeh.logprompt.entity.LogType;
 import ir.yasinzadeh.logprompt.entity.PromptDto;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -35,8 +37,8 @@ public class HdfsParser {
     @Value("${model.api.ollama.model-name}")
     private String ollamaModel;
 
-    @Autowired
-    private CallModelAi callModelAi;
+    private final CallModelAi callModelAi;
+    private final FinalPromptsService finalPromptsService;
 
     private static final Pattern LOG_PATTERN = Pattern.compile(
             "^(?<date>\\d{6})\\s+" +
@@ -46,6 +48,11 @@ public class HdfsParser {
             "(?<component>[\\w\\.$]+):\\s+" +
             "(?<message>.*)$"
     );
+
+    public HdfsParser(CallModelAi callModelAi, FinalPromptsService finalPromptsService) {
+        this.callModelAi = callModelAi;
+        this.finalPromptsService = finalPromptsService;
+    }
 
 
     public void parseHdfsLogsEfficient(String filePath) {
@@ -58,37 +65,75 @@ public class HdfsParser {
                 LogHdfsEntryDto dto = parseLine(line);
                 batch.add(dto);
                 lineCount++;
-
                 if (lineCount % 10 == 0) {
-                    processBatch(batch); // ذخیره‌سازی، ساخت پرامپت یا چاپ
+                    processBatch(batch);
                     batch.clear();
-
-                    Thread.sleep(2000); // وقفه اختیاری
                 }
             }
-
-            // در صورت باقی‌ماندن لاگ کمتر از ۱۰ عدد در آخر فایل
             if (!batch.isEmpty()) {
                 processBatch(batch);
             }
-
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private void processBatch(List<LogHdfsEntryDto> batch) {
-        List<PromptDto> prompts = new ArrayList<>();
         batch.forEach(dto -> {
+            List<PromptDto> gptPrompts = new ArrayList<>();
             PromptGenerator.generatePromptsHdfs(dto)
-                    .forEach(prompt -> prompts.add(new PromptDto()
+                    .forEach(prompt -> gptPrompts.add(new PromptDto()
                             .setPrompt(prompt)
-                            .setResult(callModelAi.getGptResult(gptModel, prompt, gptApiURL))));
-//            finalPromptsService.save(
-//                    new FinalPrompts()
-//                            .setPrompts(prompts)
-//                            .setLog(dto.getMainLog())
-//            );
+                            .setResult(callModelAi.getGptResult(gptModel, prompt, gptApiURL))
+                            .setAiModel(AiModel.CHATGPT)));
+            finalPromptsService.save(new FinalPrompts()
+                    .setPrompts(gptPrompts)
+                    .setLog(dto.getMainLog())
+                    .setLogType(LogType.HDFS));
+
+            List<PromptDto> ollamaPrompts = new ArrayList<>();
+            PromptGenerator.generatePromptsHdfs(dto)
+                    .forEach(prompt -> ollamaPrompts.add(new PromptDto()
+                            .setPrompt(prompt)
+                            .setResult(callModelAi.getGptResult(gptModel, prompt, gptApiURL))
+                            .setAiModel(AiModel.OLLAMMA)));
+            finalPromptsService.save(new FinalPrompts()
+                    .setPrompts(ollamaPrompts)
+                    .setLog(dto.getMainLog())
+                    .setLogType(LogType.HDFS));
+
+            List<PromptDto> bertPrompts = new ArrayList<>();
+            PromptGenerator.generatePromptsHdfs(dto)
+                    .forEach(prompt -> bertPrompts.add(new PromptDto()
+                            .setPrompt(prompt)
+                            .setResult(callModelAi.getGptResult(gptModel, prompt, gptApiURL))
+                            .setAiModel(AiModel.BERT)));
+            finalPromptsService.save(new FinalPrompts()
+                    .setPrompts(bertPrompts)
+                    .setLog(dto.getMainLog())
+                    .setLogType(LogType.HDFS));
+
+            List<PromptDto> robertaPrompts = new ArrayList<>();
+            PromptGenerator.generatePromptsHdfs(dto)
+                    .forEach(prompt -> robertaPrompts.add(new PromptDto()
+                            .setPrompt(prompt)
+                            .setResult(callModelAi.getGptResult(gptModel, prompt, gptApiURL))
+                            .setAiModel(AiModel.ROBERTA)));
+            finalPromptsService.save(new FinalPrompts()
+                    .setPrompts(robertaPrompts)
+                    .setLog(dto.getMainLog())
+                    .setLogType(LogType.HDFS));
+
+            List<PromptDto> albertPrompts = new ArrayList<>();
+            PromptGenerator.generatePromptsHdfs(dto)
+                    .forEach(prompt -> albertPrompts.add(new PromptDto()
+                            .setPrompt(prompt)
+                            .setResult(callModelAi.getGptResult(gptModel, prompt, gptApiURL))
+                            .setAiModel(AiModel.ALBERTA)));
+            finalPromptsService.save(new FinalPrompts()
+                    .setPrompts(albertPrompts)
+                    .setLog(dto.getMainLog())
+                    .setLogType(LogType.HDFS));
         });
     }
 

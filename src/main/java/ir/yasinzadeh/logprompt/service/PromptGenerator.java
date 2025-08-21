@@ -21,7 +21,16 @@ public class PromptGenerator {
                 Optional.ofNullable(dto.getSeverity()).orElse("")
         ).trim();
 
-        String prompt = "Answer with only one character: either 0 (normal) or 1 (anomaly). Do not explain. Just output the digit.\n";
+//        String prompt = "Answer with only one character: either 0 (normal) or 1 (anomaly). Do not explain. Just output the digit.\n";
+        String prompt =
+                "Answer with only one character: either 0 (normal) or 1 (anomaly). Do not explain. Just output the digit.\n" +
+                "Rule: If the log says an error was 'corrected' (e.g., 'error corrected', 'parity error corrected'), treat it as normal (0). "
+                + "Only mark as anomaly (1) if the error is uncorrected, critical, repeated, or indicates real failure.\n" +
+                "Examples:\n" +
+                "- \"instruction cache parity error corrected\" -> 0\n" +
+                "- \"memory ECC error uncorrected\" -> 1\n" +
+                "- \"CPU temperature exceeded threshold\" -> 1\n" +
+                "- \"instruction cache parity error corrected\" -> 0\n\n";
         String prompt1 = prompt + String.format("semantic %s sequential %s it is [MSK]", sem, seq);
         String prompt2 = prompt + String.format("%s %s it is [MSK]", sem, seq);
         String prompt3 = prompt + String.format("%s %s normal or anomaly ? [MSK]", sem, seq);

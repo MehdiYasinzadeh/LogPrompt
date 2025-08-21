@@ -12,6 +12,7 @@ public class FinalPrompts {
     private String id;
     private String log;
     private List<PromptDto> prompts;
+    private LogType logType;
 
     public String getId() {
         return id;
@@ -37,6 +38,15 @@ public class FinalPrompts {
 
     public FinalPrompts setPrompts(List<PromptDto> prompts) {
         this.prompts = prompts;
+        return this;
+    }
+
+    public LogType getLogType() {
+        return logType;
+    }
+
+    public FinalPrompts setLogType(LogType logType) {
+        this.logType = logType;
         return this;
     }
 }
