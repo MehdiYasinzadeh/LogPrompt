@@ -5,6 +5,7 @@ import ir.yasinzadeh.logprompt.entity.AiModel;
 import ir.yasinzadeh.logprompt.entity.FinalPrompts;
 import ir.yasinzadeh.logprompt.entity.LogType;
 import ir.yasinzadeh.logprompt.entity.PromptDto;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
+@Slf4j
 public class BglParser {
 
     @Value("${model.api.gpt.url}")
@@ -57,24 +59,21 @@ public class BglParser {
 
     public void logParser() throws IOException {
         List<String> lines = Files.readAllLines(Path.of(bglPath));
+        int size = lines.size();
 
-        List<List<String>> chunks = new ArrayList<>();
-        for (int i = 0; i < lines.size(); i += 10) {
-            chunks.add(lines.subList(i, Math.min(i + 10, lines.size())));
-        }
-
-        for (List<String> chunk : chunks) {
-            List<LogBglEntryDto> dtos = chunk.stream()
+        for (int i = 0; i < size; i += 10) {
+            int end = Math.min(i + 10, size);
+            List<LogBglEntryDto> dtos = lines.subList(i, end).stream()
                     .map(BglParser::parseLine)
                     .toList();
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+
             makeAndSaveBglPrompt(dtos);
+
+            int remaining = size - end;
+            log.info("Remaining lines: {}", remaining);
         }
     }
+
 
     private void makeAndSaveBglPrompt(List<LogBglEntryDto> dtos) {
         dtos.forEach(dto -> {
